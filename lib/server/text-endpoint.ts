@@ -3,11 +3,17 @@ import { ZodError } from "zod";
 import { textInputSchema } from "../analysis/contracts";
 import { checkRateLimit, clientAddress } from "../security/rate-limit";
 import { TokenBudgetExceeded } from "../security/token-budget";
+import { GeminiRequestError } from "../ai/gemini-error";
 
 type Operation = "analyze" | "revise";
 
 function safeProviderMessage(error: unknown, operation: Operation): string {
   if (error instanceof ZodError) return "模型回傳格式無法驗證，請稍後重試。";
+  if (error instanceof GeminiRequestError) {
+    const stage = error.stage === "countTokens" ? "輸入 token 計數" : "文字生成";
+    const status = error.status === undefined ? "未取得 HTTP 狀態碼" : `HTTP ${error.status}`;
+    return `Gemini ${stage}失敗（${status}）。請查看 Google AI Studio 的用量與模型狀態後重試。`;
+  }
 
   const status = typeof error === "object" && error !== null && "status" in error
     ? error.status
