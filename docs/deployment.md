@@ -17,7 +17,7 @@ The target repository is `evan980331/ai_detector`. Connect the local repository 
 3. Optionally set `GEMINI_MODEL`; the default is `gemini-flash-latest`.
 4. Deploy and verify the homepage, `/api/analyze`, and `/api/revise` without exposing the key or submitted text in logs.
 
-The current rate limit is process-local and best-effort; serverless instances do not share counters. Before broad public use, add a shared rate-limit service or suitable edge protection, plus monitoring that does not retain submitted text.
+The app counts each full prompt with Gemini `countTokens` and reserves a conservative 512-token overhead against a 25,000 input-token rolling 60-second budget per model. This in-memory budget is per running server instance; Vercel serverless instances do not share counters, and Gemini's project quota remains the final global enforcement. For a strict app-wide cap across concurrent instances, configure a shared atomic store (for example Redis) before broad public use. The existing request-count limiter is also process-local.
 
 ## Privacy
 

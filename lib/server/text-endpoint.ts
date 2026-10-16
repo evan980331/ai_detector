@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { textInputSchema } from "../analysis/contracts";
 import { checkRateLimit, clientAddress } from "../security/rate-limit";
+import { TokenBudgetExceeded } from "../security/token-budget";
 
 type Operation = "analyze" | "revise";
 
@@ -54,6 +55,13 @@ export async function handleTextEndpoint<T>(
   try {
     return NextResponse.json(await processText(input.data.text));
   } catch (error) {
+    if (error instanceof TokenBudgetExceeded) {
+      const errorMessage = error.reason === "request_too_large"
+        ? "這段文字超過單次 25,000 TPM 預算，請縮短內容後再試。"
+        : "目前每分鐘輸入 token 預算已滿，請稍後再試。";
+      const headers = error.retryAfter > 0 ? { "Retry-After": String(error.retryAfter) } : undefined;
+      return NextResponse.json({ error: errorMessage }, { status: 429, headers });
+    }
     return NextResponse.json({ error: safeProviderMessage(error, operation) }, { status: 502 });
   }
 }
