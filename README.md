@@ -1,36 +1,24 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 字間
 
-## Getting Started
+繁體中文 AI 寫作訊號分析與編輯輔助工具。分析結果是未校準的模型觀察，不是作者身分鑑定；編輯建議以清晰度、連貫性、文法與原意保留為目標。
 
-First, run the development server:
+## 本機執行
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+需求：Node.js 20 或更新版本。
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+1. 安裝依賴：`npm install`
+2. 複製 `.env.example` 為 `.env.local`，設定 `GEMINI_API_KEY`。API key 只在伺服器端使用，勿提交至 Git。
+3. 啟動：`npm run dev`
+4. 開啟 `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+沒有 API key 時，介面仍可瀏覽，但分析與編輯 API 會回覆未設定提示。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 驗證
 
-## Learn More
+- `npm test`
+- `npm run lint`
+- `npm run build`
 
-To learn more about Next.js, take a look at the following resources:
+## 部署
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+部署流程與環境變數設定請見 [docs/deployment.md](docs/deployment.md)。評估限制與資料集規範請見 [docs/evaluation.md](docs/evaluation.md)。
