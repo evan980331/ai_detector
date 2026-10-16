@@ -5,6 +5,23 @@ import { checkRateLimit, clientAddress } from "../security/rate-limit";
 
 type Operation = "analyze" | "revise";
 
+function safeProviderMessage(error: unknown, operation: Operation): string {
+  if (error instanceof ZodError) return "模型回傳格式無法驗證，請稍後重試。";
+
+  const status = typeof error === "object" && error !== null && "status" in error
+    ? error.status
+    : undefined;
+
+  if (status === 400) return "Gemini API 拒絕此請求（400）；請確認模型名稱與 JSON 輸出設定。";
+  if (status === 401 || status === 403) return "Gemini API 認證失敗；請確認 GEMINI_API_KEY 有效，且該 key 可使用 Gemini API。";
+  if (status === 404) return "找不到指定的 Gemini 模型（404）；請檢查 GEMINI_MODEL 設定。";
+  if (status === 429) return "Gemini API 額度或速率限制已達上限（429）；請稍後再試或檢查 Google AI Studio 用量。";
+  if (typeof status === "number" && status >= 500) return "Gemini API 目前服務異常，請稍後再試。";
+
+  const service = operation === "analyze" ? "分析" : "編輯";
+  return `${service}服務暫時無法使用，請稍後重試。文章內容不會寫入錯誤紀錄。`;
+}
+
 export async function handleTextEndpoint<T>(
   request: Request,
   operation: Operation,
@@ -37,8 +54,6 @@ export async function handleTextEndpoint<T>(
   try {
     return NextResponse.json(await processText(input.data.text));
   } catch (error) {
-    if (error instanceof ZodError) return NextResponse.json({ error: "模型回傳格式無法驗證，請稍後重試。" }, { status: 502 });
-    const service = operation === "analyze" ? "分析" : "編輯";
-    return NextResponse.json({ error: `${service}服務暫時無法使用，請稍後重試。文章內容不會寫入錯誤紀錄。` }, { status: 502 });
+    return NextResponse.json({ error: safeProviderMessage(error, operation) }, { status: 502 });
   }
 }

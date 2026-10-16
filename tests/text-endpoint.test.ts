@@ -51,4 +51,22 @@ describe("handleTextEndpoint", () => {
     expect(body).not.toContain(privateText);
     expect(body).not.toContain("provider failed");
   });
+
+  it("shows a safe authentication hint without exposing provider error details", async () => {
+    vi.stubEnv("GEMINI_API_KEY", "test-only-placeholder");
+    const request = new Request("http://localhost/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "這是供 API 測試使用的繁體中文文章內容，長度已經超過八十字的最低限制，確認 API 認證失敗時只回傳安全提示。".repeat(2) }),
+    });
+
+    const response = await handleTextEndpoint(request, "analyze", async () => {
+      throw Object.assign(new Error("private provider detail"), { status: 401 });
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(502);
+    expect(body).toContain("認證失敗");
+    expect(body).not.toContain("private provider detail");
+  });
 });
