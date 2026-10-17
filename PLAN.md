@@ -159,3 +159,40 @@ Optional file parsing should be added under `lib/files/` with focused tests if a
 2. Google AI Studio 用量、配額與模型即時狀態未查證（需帳號權限）。
 3. UI 層「再試一次」按鈕未實作：目前重試在伺服器端完成，重試耗盡後需由使用者重新送出。
 4. 若要跨 Vercel serverless 實例共用 rate limit/token 預算，仍需共用儲存（如 Redis），本次未變更。
+
+## 2026-10-17：P0 提交確認、驗收與部署準備
+
+### 本階段範圍
+
+只做修正提交的確認、驗收、推送與部署準備；未開始任何 UI 改版、付費功能、資料庫變更或新依賴。
+
+### Git 檢查
+
+- 分支 `master`，起始 HEAD `2b7446c`（完整 hash `2b7446c692116f703da8b7fe4f4a118dd3959fb7`），當時相對 `origin/master` ahead 1（尚未推送）。
+- `git show --stat 2b7446c` 確認包含 11 個檔案：有界重試與錯誤分類（`lib/ai/gemini-error.ts`）、timeout 與模型設定檢查（`lib/ai/gemini.ts`）、對外狀態碼分類與結構化診斷（`lib/server/text-endpoint.ts`）、前端安全 fallback（`components/editor-workspace.tsx`）、測試 4 檔、`PLAN.md`、`.env.example`、`docs/deployment.md`；逐點 grep 確認重試常數、分類函式、`text_endpoint_error` 診斷與 `httpOptions.timeout` 均在 commit 內。
+- 未追蹤：`.devserver.log`（本機 dev server 暫存日誌）、`.freebuff/`（平台資料）——刻意不納入提交；`.env` 持續被 ignore，全程未輸出任何金鑰。
+
+### 本階段驗收（實際重新執行）
+
+| 命令 | 結果 |
+| --- | --- |
+| `npm test` | exit 0：6 個測試檔、48 tests 全部通過 |
+| `npm run lint` | exit 0，無錯誤 |
+| `npm run build` | exit 0：編譯與 TypeScript 檢查通過，`/api/analyze`・`/api/revise` 為動態路由 |
+
+### 推送與部署
+
+- 授權：使用者在本階段明確授權推送必要提交；`AGENTS.md` 要求部署前通過測試與 diff 檢查（已完成）。
+- 推送：`git push origin master`；推送後以 `git ls-remote` 核對遠端 hash（實際結果見交付回報）。
+- 部署：本專案部署流程為 GitHub → Vercel。本機未連結 Vercel 專案（無 `.vercel/`），無法從本機確認部署狀態或對應 commit → **標記為未驗證**，需使用者於 Vercel 儀表板確認（若已連接 Git 集成，push 會自動觸發部署）。本階段未在本機執行部署指令，未修改任何正式環境變數。
+
+### 手動測試清單
+
+見交付回報（8 項：分析成功、修改成功、輸入驗證提示、載入狀態、暫時性 503 有限重試後恢復、持續失敗時的分類與下一步、窄螢幕排版、開發者工具/伺服器日誌隱私檢查）。其中「暫時性 503 自動恢復」在沒有實際 503 的情況下**尚未實際觸發驗證**（刻意不對正式 API 施加故障或大量請求）。
+
+### 本階段未驗證／已知限制
+
+1. 正式（Vercel）部署是否成功、對應 commit、正式環境的 `GEMINI_API_KEY`/`GEMINI_MODEL`：需使用者確認。
+2. Google AI Studio 用量、配額與模型即時狀態：需帳號權限，未查證。
+3. 前端 DOM 層自動化測試仍缺（專案無 jsdom）；錯誤字串已由 endpoint 層測試覆蓋。
+4. 可選強化（依本階段停止條件未執行）：`requestJson` 在「HTTP 200 但 body 非 JSON」時目前回傳空物件，極端情況下會讓結果面板存到空資料；建議後續改為拋出安全訊息並補測試。
