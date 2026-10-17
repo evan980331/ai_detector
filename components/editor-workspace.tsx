@@ -7,11 +7,24 @@ import type { AnalysisResult, RevisionResult } from "@/lib/analysis/contracts";
 
 const MAX_CHARACTERS = 12_000;
 
+function fallbackMessage(status: number): string {
+  if (status === 413) return "請求內容過大，請縮短文字後再試。";
+  if (status === 429) return "請求過於頻繁或配額已滿，請稍後再試。";
+  if (status === 504) return "服務逾時，請稍後再試。";
+  if (status === 503) return "服務尚未完成設定或暫時無法使用，請稍後再試。";
+  return "請求失敗，請稍後重試。";
+}
+
 async function requestJson<T>(url: string, body: unknown): Promise<T> {
   const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const result = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(result.error ?? "請求失敗，請稍後重試。");
-  return result;
+  let result: { error?: string } = {};
+  try {
+    result = (await response.json()) as { error?: string };
+  } catch {
+    // 平台或代理的非 JSON 錯誤頁：不把内部細節顯示給使用者。
+  }
+  if (!response.ok) throw new Error(result.error ?? fallbackMessage(response.status));
+  return result as T;
 }
 
 export default function EditorWorkspace() {
